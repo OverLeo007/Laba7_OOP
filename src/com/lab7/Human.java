@@ -110,7 +110,7 @@ public class Human {
    *
    * @return вес человека
    */
-  public float getWeight() {
+  public int getWeight() {
     return this.weight;
   }
 
@@ -269,4 +269,38 @@ public class Human {
         this.decimalFormat.format(this.getWeight()),
         this.getBMI());
   }
+
+
+  /**
+   * Проверка входного значения на эквивалентность с
+   * текущим экземпляром Human
+   *
+   * @param o любое входное значение
+   * @return true если экземпляры одинаковы, false если нет
+   */
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Human human = (Human) o;
+
+    return weight == human.weight
+        && Float.compare(height, human.height) == 0
+        && gender == human.gender
+        && Objects.equals(name, human.name)
+        && Objects.equals(surname, human.surname);
+  }
+
+  /**
+   * @return хэш экземпляра Human
+   */
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, surname, weight, height, gender);
+  }
+
 }

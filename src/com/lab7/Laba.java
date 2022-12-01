@@ -4,12 +4,10 @@ import com.lab7.Exceptions.*;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
+import java.util.DoubleSummaryStatistics;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 
 /**
@@ -19,18 +17,7 @@ public class Laba {
 
 
   public static void main(String[] args) {
-
-    PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
-    Integer[] arr = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-    Integer[] arr2 = {3, 4, 5};
-
-    Stream<Integer> stream = Arrays.stream(arr);
-
-    stream.flatMap(x -> Arrays.stream(arr2)).forEach(x -> out.printf("%s ", x));
-
-
-
-//    new UI().menu();
+    new UI().menu();
   }
 
 }
@@ -46,7 +33,12 @@ interface menuEnum {
       DELETE_HUMAN = 4,
       EDIT_HUMAN = 5,
       SORT_HUMANS = 6,
-      EXIT = 7;
+      DELETE_DUPLICATES = 7,
+      HEIGHT_FILTER = 8,
+      SUM_WEIGHT = 9,
+      HEIGHT_STAT = 10,
+      GROUP_BY_GENDER = 11,
+      EXIT = 12;
 
   int CHANGE_NAME = 1,
       CHANGE_SURNAME = 2,
@@ -83,20 +75,24 @@ class UI implements menuEnum {
   /**
    * Основной список людей
    */
-  private final ArrayList<Human> humans = new ArrayList<>();
+  private ArrayList<Human> humans = new ArrayList<>();
 
 
   /**
    * Метод основного меню работы
    */
   public void menu() {
-//    try {
-//      this.humans.add(new Human(1.85f, 71, "Leo", "Sokolov", "м"));
-//      this.humans.add(new Human(1.65f, 51, "Katya", "Sokolova", "ж"));
-//      this.humans.add(new Human(1.76f, 56, "Arisha", "Demekhina", "ж"));
-//    } catch (Exception e) {
-//      out.println("???");
-//    }
+    try {
+      this.humans.add(new Human(1.85f, 71, "Human", "Humanow", "м"));
+      this.humans.add(new Human(1.65f, 51, "Humana", "Humanowna", "ж"));
+      this.humans.add(new Human(1.76f, 56, "Presona", "Personovna", "ж"));
+      this.humans.add(new Human(1.85f, 71, "Person", "Personow", "м"));
+      this.humans.add(new Human(1.85f, 71, "Human", "Humanow", "м"));
+      this.humans.add(new Human(1.85f, 71, "Human", "Humanow", "м"));
+      this.humans.add(new Human(1.85f, 71, "Human", "Humanow", "м"));
+    } catch (Exception e) {
+      out.println("???");
+    }
 
     int choice;
     do {
@@ -107,18 +103,28 @@ class UI implements menuEnum {
           4. Удалить человека по индексу
           5. Отредактировать данные человека по индексу
           6. Отсортировать список людей
-          7. Выйти из программы
+          7. Удалить дубликаты
+          8. Фильтр по росту
+          9. Суммарный вес людей
+          10. Статистика по росту людей
+          11. Группировка по полу
+          12. Выйти из программы
           """);
 
       choice = inp.getInt();
       try {
         switch (choice) {
-          case PRINT_HUMANS -> printHumans();
+          case PRINT_HUMANS -> printHumans(humans);
           case ADD_VOID_HUMAN -> addVoidHuman();
           case ADD_FILLED_HUMAN -> addParamHuman();
           case DELETE_HUMAN -> deleteHuman();
           case EDIT_HUMAN -> editHuman();
           case SORT_HUMANS -> sortHumans();
+          case DELETE_DUPLICATES -> deleteDuplicates();
+          case HEIGHT_FILTER -> filterByHeight();
+          case SUM_WEIGHT -> sumByWeight();
+          case HEIGHT_STAT -> heightStat();
+          case GROUP_BY_GENDER -> groupByGender();
           default -> {
             if (choice != EXIT) {
               out.println("Некорректный ввод");
@@ -131,12 +137,71 @@ class UI implements menuEnum {
                IncorrectIntException |
                HumanCreateException exception) {
         out.println("При вводе какого-то значения произошла ошибка: "
-             + exception.getMessage());
+            + exception.getMessage());
       } catch (AssertionError e) {
         out.println(e.getMessage());
       }
     } while (choice != EXIT);
   }
+
+  /**
+   * Группировка людей по полу
+   */
+  private void groupByGender() {
+    humans.stream().
+        filter((x) -> x.getWeight() != 0 && x.getHeight() != 0).
+        collect(Collectors.groupingBy(Human::getGender)).
+        forEach((key, value) -> {
+          out.println("Пол: " + key);
+          out.println("Человек с этим полом: " + value.size());
+          value.forEach((x) -> out.println("####################\n" + x));
+          out.println("////////////////////////////////////////");
+        });
+  }
+
+
+  /**
+   * Вывод максимального, среднего и минимального значения веса у людей
+   */
+  private void heightStat() {
+    DoubleSummaryStatistics stat = humans.stream().
+        filter((x) -> x.getWeight() != 0 && x.getHeight() != 0)
+        .mapToDouble(Human::getHeight).
+        summaryStatistics();
+    out.printf("min: %.2f\navg: %.2f\nmax: %.2f\n", stat.getMin(), stat.getAverage(),
+        stat.getMax());
+  }
+
+
+  /**
+   * Суммарный вес всех людей в списке
+   */
+  private void sumByWeight() {
+    out.println(humans.stream().reduce(0, (x, y) -> x + y.getWeight(), (x, y) -> null));
+  }
+
+  /**
+   * Метод фильтрации по людей по минимальному росту
+   */
+  private void filterByHeight() {
+    out.println("Введите минимальный рост");
+
+    float minHeight = inp.getFloat();
+    if (minHeight < 0) {
+      out.println("Некорректное значение");
+    }
+    printHumans(humans.stream().filter(human -> human.getHeight() > minHeight)
+        .collect(Collectors.toCollection(ArrayList<Human>::new)));
+
+  }
+
+  /**
+   * Метод удаления дубликатов из списка людей
+   */
+  private void deleteDuplicates() {
+    humans = humans.stream().distinct().collect(Collectors.toCollection(ArrayList<Human>::new));
+  }
+
 
   /**
    * Метод, реализующий сортировку по выбранному в нем полю
@@ -326,19 +391,16 @@ class UI implements menuEnum {
 
   /**
    * Метод вывода всего списка людей
+   *
    * @throws AssertionError при пустом списке
    */
-  private void printHumans() throws AssertionError {
+  private void printHumans(ArrayList<Human> humans) throws AssertionError {
     assert !humans.isEmpty() : "Не добавлено ни одного человека";
 
-    int num = 1;
+    IntStream.range(0, humans.size())
+        .forEach(i -> out.printf("Человек номер %d\n%s\n####################\n",
+            i + 1, humans.get(i)));
+    out.println();
 
-    for (Human human : this.humans) {
-      out.printf("Человек №%d\n", num);
-      out.println(human);
-      out.println("####################");
-
-      num++;
-    }
   }
 }
